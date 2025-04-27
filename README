@@ -1,0 +1,13 @@
+A Neural Network Classifier for Wildlife Re-Identification (DeiT-based)
+Installation instructions:
+Clone the repository:
+git clone https://github.com/krishsanghvi/cv-final-project-2025.git
+
+Model:
+Model is trained in model.py. The specific model we used in our project is facebook/deit-base-distilled-patch16-224.
+
+Test Examples:
+A sample dataset of 3 images can be see in the training_data folder.
+
+Data Augmentation Code:
+Data preprocessing and augmentation is done in create_data.ipynb.

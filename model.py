@@ -1,29 +1,8 @@
-# Chat code
-
-"""
-Colab‑friendly fine‑tuning script for WildlifeReID‑10k using DeiT.
------------------------------------------------------------------
-Assumptions
-===========
-* `final_df` (pandas.DataFrame) already exists in the workspace and has
-  two columns:
-      - "image_path"  → relative or absolute path of each image
-      - "identity"     → class label (string)
-* Images are reachable on disk (e.g. copied to /content/training_data/...).
-* Runtime has a GPU (T4/V100/A100) and PyTorch/Transformers installed.
-
-If you run this from scratch in Colab:
-  1. Upload / prepare `final_df` (or build it with the earlier notebook cells).
-  2. Run `!pip install -q transformers timm accelerate` once.
-  3. Run this script in a cell (or copy/paste into a new cell).
-
-The script uses:
-  • early stopping (patience)
-  • optional backbone freezing for the first epochs (uncomment to thaw)
-"""
 
 # ───────────────────────────────── Imports ───────────────────────────────────
-import os, random, time
+import os
+import random
+import time
 import numpy as np
 import pandas as pd
 import torch
@@ -35,21 +14,21 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from transformers import (AutoImageProcessor,
-    DeiTForImageClassification
-)
+                          DeiTForImageClassification
+                          )
 import matplotlib.pyplot as plt
 
 
 final_df = pd.read_csv('training_data/full_image_identity.csv')
 
 # ───────────────────────────── Hyper‑parameters ─────────────────────────────
-SEED            = 42
-numEpochs       = 50          #  start small; rely on early stopping 10
-patience        = 3           # stop if val‑acc doesn\'t improve for N epochs
-batchSize       = 64         # fits on Colab T4 (≈7 GB)
-learningRate    = 1e-4        # higher because backbone is (initially) frozen
-weightDecay     = 1e-4
-freeze_backbone = True        # set False to train full network from start
+SEED = 42
+numEpochs = 50
+patience = 3
+batchSize = 64
+learningRate = 1e-4
+weightDecay = 1e-4
+freeze_backbone = True
 threshold = .6
 
 # ───────────────────────────── Reproducibility ──────────────────────────────
@@ -69,11 +48,15 @@ y = le.fit_transform(final_df['identity'].values)
 num_classes = len(le.classes_)
 
 # ───────────────────────── Train / val / test split ─────────────────────────
-X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=SEED)
-X_train, X_val,  y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.1875, random_state=SEED)
+X_temp, X_test, y_temp, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=SEED)
+X_train, X_val,  y_train, y_val = train_test_split(
+    X_temp, y_temp, test_size=0.1875, random_state=SEED)
 print(f"Train: {len(X_train)}  |  Val: {len(X_val)}  |  Test: {len(X_test)}")
 
 # ───────────────────────────── Data‑set object ──────────────────────────────
+
+
 class AnimalDataset(Dataset):
     def __init__(self, image_paths, labels, processor):
         self.image_paths = image_paths
@@ -90,8 +73,10 @@ class AnimalDataset(Dataset):
         inputs["labels"] = torch.tensor(self.labels[idx], dtype=torch.long)
         return inputs
 
+
 # ─────────────────────────── Model & Optimiser ──────────────────────────────
-image_processor = AutoImageProcessor.from_pretrained("facebook/deit-base-distilled-patch16-224", use_fast=True)
+image_processor = AutoImageProcessor.from_pretrained(
+    "facebook/deit-base-distilled-patch16-224", use_fast=True)
 model = DeiTForImageClassification.from_pretrained(
     "facebook/deit-base-distilled-patch16-224",
     num_labels=num_classes,
@@ -104,21 +89,22 @@ if freeze_backbone:
         p.requires_grad = False
 
 model.to(device)
-optimizer = AdamW(model.parameters(), lr=learningRate, weight_decay=weightDecay)
+optimizer = AdamW(model.parameters(), lr=learningRate,
+                  weight_decay=weightDecay)
 
 # ───────────────────────────── Dataloaders ──────────────────────────────────
 train_ds = AnimalDataset(X_train, y_train, image_processor)
-val_ds   = AnimalDataset(X_val,   y_val,   image_processor)
+val_ds = AnimalDataset(X_val,   y_val,   image_processor)
 
 train_dl = DataLoader(train_ds, batch_size=batchSize, shuffle=True)
-val_dl   = DataLoader(val_ds,   batch_size=batchSize)
+val_dl = DataLoader(val_ds,   batch_size=batchSize)
 
 test_ds = AnimalDataset(X_test, y_test, image_processor)
 test_dl = DataLoader(test_ds, batch_size=batchSize)
 
 # ───────────────────────────── Training loop ───────────────────────────────
 best_val_acc = 0.0
-no_improve   = 0
+no_improve = 0
 
 train_losses = []
 val_losses = []
@@ -142,7 +128,6 @@ for epoch in range(1, numEpochs + 1):
     train_losses.append(train_loss)
     # ── Validation ──
 
-    
     model.eval()
     val_loss = correct = total = 0
     with torch.no_grad():
@@ -157,11 +142,8 @@ for epoch in range(1, numEpochs + 1):
     val_losses.append(val_loss)
     val_acc = correct / total
 
-    
-
-    
-
-    print(f"Epoch {epoch:02d} │ train‑loss {train_loss:.4f} │ val‑loss {val_loss:.4f} │ val‑acc {val_acc:.4f}")
+    print(
+        f"Epoch {epoch:02d} │ train‑loss {train_loss:.4f} │ val‑loss {val_loss:.4f} │ val‑acc {val_acc:.4f}")
 
     # ── Early stop / checkpoint ──
     if val_acc > best_val_acc:
@@ -193,16 +175,16 @@ with torch.no_grad():
     for batch in tqdm(test_dl, desc="Testing"):
         labels = batch["labels"].cpu().numpy()
         batch = {k: v.to(device) for k, v in batch.items()}
-        logits = model(**batch).logits                  
-        probs  = torch.softmax(logits, dim=1)          
-        max_probs, pred_idxs = probs.max(dim=1)        
+        logits = model(**batch).logits
+        probs = torch.softmax(logits, dim=1)
+        max_probs, pred_idxs = probs.max(dim=1)
 
         for true_idx, pred_idx, prob in zip(labels, pred_idxs.cpu(), max_probs.cpu()):
             y_true.append(le.classes_[true_idx])
             if prob.item() < threshold:
-               y_pred.append("new_identity")
+                y_pred.append("new_identity")
             else:
-               y_pred.append(le.classes_[pred_idx.item()])
+                y_pred.append(le.classes_[pred_idx.item()])
 
 
 print("\nTest Classification Report:")
@@ -214,13 +196,10 @@ cm = confusion_matrix(y_true, y_pred, labels=labels)
 
 # 2. Plot the raw counts
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
-fig, ax = plt.subplots(figsize=(12,12))      # adjust size as needed
+fig, ax = plt.subplots(figsize=(12, 12))      # adjust size as needed
 disp.plot(ax=ax, cmap="Blues", xticks_rotation=90)
 ax.set_title("Confusion Matrix (counts)")
 plt.tight_layout()
 plt.show()
 
-plt.savefig("ConfusionMatrix.png") 
-
-
-
+plt.savefig("ConfusionMatrix.png")
