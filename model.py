@@ -191,12 +191,12 @@ print("\nTest Classification Report:")
 print(classification_report(y_true, y_pred))
 
 
-labels = le.classes_                   # your class names in order
+labels = le.classes_
 cm = confusion_matrix(y_true, y_pred, labels=labels)
 
-# 2. Plot the raw counts
+# Plot confusion matrix
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
-fig, ax = plt.subplots(figsize=(12, 12))      # adjust size as needed
+fig, ax = plt.subplots(figsize=(12, 12))
 disp.plot(ax=ax, cmap="Blues", xticks_rotation=90)
 ax.set_title("Confusion Matrix (counts)")
 plt.tight_layout()
