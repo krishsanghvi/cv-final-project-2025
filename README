@@ -11,3 +11,11 @@ A sample dataset of 3 images can be see in the training_data folder.
 
 Data Augmentation Code:
 Data preprocessing and augmentation is done in create_data.ipynb.
+
+How to Run the Code
+Step 1: Download datasets and AnimalCLEF-2025 competition data in the first cell in create_data.ipynb
+Step 2: Prepare the dataset by extracting Lynx, Salamander, and Turtle images and storing into species folders in cells 2-4 in create_data.ipynb
+Step 3: Augment the data to reach 30,000 images per species in cell 6 in create_data.ipynb
+Step 4: Run cell 7 in create_data.ipynb to create the final CSV (full_image_identity.csv)
+Step 5: Train a DeiT (Data-efficient Image Transformer) for classification which contains 65% training, 15% validation, 20% testing in model.py
+Step 6: After training, evaluate on a test set which will generate a classification report
